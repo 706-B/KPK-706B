@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>КПК — Пограничная Зона 706-Б</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #080c10;
+    --bg2: #0d1318;
+    --bg3: #121a22;
+    --panel: #0a1520;
+    --border: #1a3a50;
+    --border2: #0f2030;
+    --accent: #00c8ff;
+    --accent2: #00ff9d;
+    --danger: #ff3c3c;
+    --warn: #ffb400;
+    --text: #c8e0f0;
+    --text2: #6a9ab8;
+    --text3: #3a6a8a;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Exo 2', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINES OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* BOOT SCREEN */
+  #boot-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .boot-logo {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    text-align: center;
+    line-height: 1.4;
+    margin-bottom: 2rem;
+    white-space: pre;
+  }
+
+  .boot-bar-wrap {
+    width: 300px;
+    border: 1px solid var(--accent);
+    padding: 2px;
+    margin-bottom: 1rem;
+  }
+
+  .boot-bar {
+    height: 6px;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.05s linear;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .boot-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text2);
+    text-align: center;
+  }
+
+  /* MAIN LAYOUT */
+  #app { display: none; min-height: 100vh; }
+
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 6px var(--accent2); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .header-right { display: flex; align-items: center; gap: 1rem; font-size: 12px; color: var(--text2); font-family: var(--font-mono); }
+  .header-time { color: var(--warn); }
+  .header-zone { color: var(--danger); }
+
+  .nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border2);
+    display: flex;
+    padding: 0 2rem;
+    gap: 0;
+  }
+
+  .nav-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text3);
+    padding: 10px 20px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .nav-btn:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(0,200,255,0.05); }
+
+  /* CONTENT */
+  .content { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* PANEL */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+  }
+
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border2);
+  }
+
+  /* TERMINAL TEXT */
+  .term { font-family: var(--font-mono); font-size: 12px; color: var(--text2); line-height: 1.8; }
+  .term .cmd { color: var(--accent); }
+  .term .ok { color: var(--accent2); }
+  .term .err { color: var(--danger); }
+  .term .warn { color: var(--warn); }
+
+  /* FORM ELEMENTS */
+  .form-group { margin-bottom: 1.2rem; }
+  .form-label { font-family: var(--font-mono); font-size: 11px; color: var(--text2); letter-spacing: 1px; margin-bottom: 6px; display: block; text-transform: uppercase; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .form-select { cursor: pointer; }
+  .form-textarea { resize: vertical; min-height: 80px; }
+
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: none;
+  }
+
+  .btn-primary { color: var(--accent); border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent); color: var(--bg); box-shadow: 0 0 12px var(--accent); }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-success { color: var(--accent2); border-color: var(--accent2); }
+  .btn-success:hover { background: var(--accent2); color: var(--bg); }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+  /* CHAR CARD */
+  .char-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .char-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    border-left: 20px solid transparent;
+    border-top: 20px solid var(--accent);
+    opacity: 0.5;
+  }
+
+  .char-avatar {
+    width: 64px; height: 64px;
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 24px;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    background: rgba(0,200,255,0.05);
+  }
+
+  .char-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .char-faction { font-family: var(--font-mono); font-size: 11px; color: var(--warn); letter-spacing: 1px; margin-bottom: 8px; }
+  .char-info { font-family: var(--font-mono); font-size: 11px; color: var(--text2); line-height: 2; }
+  .char-id { position: absolute; bottom: 1rem; right: 1rem; font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
+
+  .status-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border: 1px solid;
+    text-transform: uppercase;
+  }
+
+  .status-active { color: var(--accent2); border-color: var(--accent2); }
+  .status-danger { color: var(--danger); border-color: var(--danger); }
+  .status-warn { color: var(--warn); border-color: var(--warn); }
+
+  /* MAP */
+  .map-container {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    min-height: 500px;
+  }
+
+  .map-svg { width: 100%; height: 100%; }
+
+  .map-legend {
+    position: absolute;
+    bottom: 1rem; left: 1rem;
+    background: rgba(8,12,16,0.9);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: var(--text2); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+  /* WIKI */
+  .wiki-entry {
+    border-bottom: 1px solid var(--border2);
+    padding: 1.5rem 0;
+  }
+
+  .wiki-entry:last-child { border-bottom: none; }
+
+  .wiki-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    margin-right: 6px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .tag-faction { background: rgba(0,200,255,0.1); color: var(--accent); border: 1px solid rgba(0,200,255,0.3); }
+  .tag-threat { background: rgba(255,60,60,0.1); color: var(--danger); border: 1px solid rgba(255,60,60,0.3); }
+  .tag-tech { background: rgba(0,255,157,0.1); color: var(--accent2); border: 1px solid rgba(0,255,157,0.3); }
+  .tag-zone { background: rgba(255,180,0,0.1); color: var(--warn); border: 1px solid rgba(255,180,0,0.3); }
+
+  .wiki-h { font-size: 16px; font-weight: 700; margin-bottom: 0.5rem; }
+  .wiki-sub { font-family: var(--font-mono); font-size: 11px; color: var(--accent); margin-bottom: 1rem; letter-spacing: 1px; }
+  .wiki-body { font-size: 13px; color: var(--text2); line-height: 1.8; }
+
+  /* STAT ROW */
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border2); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-key { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 1px; }
+  .stat-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+
+  /* ARCHIVE */
+  .archive-item {
+    display: flex; align-items: flex-start; gap: 1rem;
+    padding: 1rem 0; border-bottom: 1px solid var(--border2);
+    cursor: pointer; transition: background 0.2s;
+  }
+  .archive-item:hover { background: rgba(0,200,255,0.03); }
+
+  .archive-num {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--text3); min-width: 60px;
+    border: 1px solid var(--border2); padding: 4px 8px; text-align: center;
+  }
+
+  .archive-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .archive-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+  .archive-class { font-family: var(--font-mono); font-size: 10px; margin-left: auto; }
+
+  .class-secret { color: var(--danger); }
+  .class-restricted { color: var(--warn); }
+  .class-open { color: var(--accent2); }
+
+  /* NOTIFICATION */
+  .notif {
+    position: fixed; top: 70px; right: 20px;
+    background: var(--panel); border: 1px solid var(--accent);
+    padding: 1rem 1.5rem;
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--accent);
+    z-index: 500;
+    animation: slideIn 0.3s ease;
+    max-width: 300px;
+  }
+
+  @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 4rem 2rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 1rem; opacity: 0.3; }
+  .empty-text { font-size: 12px; letter-spacing: 1px; line-height: 2; }
+
+  /* MODAL */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--accent);
+    padding: 2rem;
+    width: 90%; max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: none; border: none; color: var(--text3);
+    font-size: 20px; cursor: pointer;
+    font-family: var(--font-mono);
+  }
+  .modal-close:hover { color: var(--danger); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  .glitch { animation: glitch 4s infinite; }
+  @keyframes glitch {
+    0%,95%,100% { text-shadow: none; }
+    96% { text-shadow: -2px 0 var(--danger); }
+    97% { text-shadow: 2px 0 var(--accent2); }
+    98% { text-shadow: -1px 0 var(--danger), 1px 0 var(--accent2); }
+  }
+
+  .faction-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid;
+  }
+
+  .f-okch { color: #4fc3f7; border-color: #4fc3f7; }
+  .f-legion { color: #ff3c3c; border-color: #ff3c3c; }
+  .f-coven { color: #b39ddb; border-color: #b39ddb; }
+  .f-krest { color: #ffb400; border-color: #ffb400; }
+  .f-coral { color: #00e5ff; border-color: #00e5ff; }
+  .f-biolife { color: #69f0ae; border-color: #69f0ae; }
+  .f-nsd { color: #fff9c4; border-color: #fff9c4; }
+  .f-chistil { color: #ce93d8; border-color: #ce93d8; }
+  .f-civilian { color: #90a4ae; border-color: #90a4ae; }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .nav { overflow-x: auto; }
+    .content { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BOOT -->
+<div id="boot-screen">
+  <div class="boot-logo glitch">
+ ██╗  ██╗██████╗ ██╗  ██╗    ███████╗ ██████╗  ██████╗       ██████╗
+ ██║ ██╔╝██╔══██╗██║ ██╔╝    ╚════██║██╔═████╗██╔════╝      ██╔══██╗
+ █████╔╝ ██████╔╝█████╔╝         ██╔╝██║██╔██║███████╗█████╗██████╔╝
+ ██╔═██╗ ██╔═══╝ ██╔═██╗        ██╔╝ ████╔╝██║██╔═══██╗╚════╝██╔══██╗
+ ██║  ██╗██║     ██║  ██╗        ██║  ╚██████╔╝╚██████╔╝      ██████╔╝
+ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝        ╚═╝   ╚═════╝  ╚═════╝       ╚═════╝
+  </div>
+  <div style="font-family:var(--font-mono); font-size:11px; color:var(--text3); margin-bottom: 1.5rem; letter-spacing:2px;">
+    ПОГРАНИЧНАЯ ЗОНА 706-Б · ПЕРСОНАЛЬНЫЙ КОММУНИКАТОР
+  </div>
+  <div class="boot-bar-wrap">
+    <div class="boot-bar" id="boot-bar"></div>
+  </div>
+  <div class="boot-text" id="boot-text">ИНИЦИАЛИЗАЦИЯ...</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="dot"></div>
+      КПК · ЗОНА 706-Б
+    </div>
+    <div class="header-right">
+      <span class="header-time" id="live-time">2072.06.19 · 00:00:00</span>
+      <span class="header-zone">⚠ ЖЁЛТАЯ ЗОНА</span>
+      <span id="user-header-name" style="color:var(--accent2)"></span>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <button class="nav-btn active" data-section="home">[ ТЕРМИНАЛ ]</button>
+    <button class="nav-btn" data-section="profile">[ ПЕРСОНАЖ ]</button>
+    <button class="nav-btn" data-section="map">[ КАРТА ]</button>
+    <button class="nav-btn" data-section="wiki">[ ВИКИ ]</button>
+    <button class="nav-btn" data-section="archive">[ АРХИВЫ ]</button>
+    <button class="nav-btn" data-section="factions">[ ФРАКЦИИ ]</button>
+  </nav>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <section class="section active" id="sec-home">
+      <div class="panel">
+        <div class="panel-title">// СИСТЕМНЫЙ ТЕРМИНАЛ — КПК v4.7.2</div>
+        <div class="term" id="terminal-output">
+          <div><span class="cmd">SYS&gt;</span> Загрузка операционной системы КПК...</div>
+          <div><span class="ok">[OK]</span> Связь с сервером зоны 706-Б установлена</div>
+          <div><span class="ok">[OK]</span> База данных демонических сущностей: актуальна</div>
+          <div><span class="warn">[!!]</span> Активность в Красной зоне: КРИТИЧЕСКАЯ</div>
+          <div><span class="err">[!!]</span> Обнаружены разломы класса Β в секторе N-7</div>
+          <div><span class="cmd">SYS&gt;</span> Год: 2072 | Статус зоны: ЖЁЛТЫЙ | Протокол: АКТИВЕН</div>
+          <br>
+          <div id="term-user-line"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">// ОБСТАНОВКА В ЗОНЕ</div>
+          <div class="stat-row"><span class="stat-key">СТАТУС ЗОНЫ</span><span class="stat-val status-badge status-warn">ЖЁЛТАЯ</span></div>
+          <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-danger">ВЫСОКАЯ</span></div>
+          <div class="stat-row"><span class="stat-key">АКТИВНЫЕ РАЗЛОМЫ</span><span class="stat-val" style="color:var(--danger)">7</span></div>
+          <div class="stat-row"><span class="stat-key">ДЕМОНОВ В СЕКТОРЕ</span><span class="stat-val" style="color:var(--danger)">НЕИЗВЕСТНО</span></div>
+          <div class="stat-row"><span class="stat-key">ПАТРУЛЬ ОКЧ</span><span class="stat-val" style="color:var(--accent2)">АКТИВЕН</span></div>
+          <div class="stat-row"><span class="stat-key">СНАБЖЕНИЕ</span><span class="stat-val" style="color:var(--warn)">ОГРАНИЧЕНО</span></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">// ПОСЛЕДНИЕ СОБЫТИЯ</div>
+          <div class="term" style="font-size:11px; line-height:2">
+            <div><span class="err">[КРИТ]</span> Сектор Н-7: Прорыв демонов 3-го класса</div>
+            <div><span class="warn">[ТРЕВОГА]</span> Пост №14: Потеря связи на 3 часа</div>
+            <div><span class="ok">[ИНФО]</span> ОКЧ: Прибыло подкрепление — 2 взвода</div>
+            <div><span class="warn">[УГРОЗА]</span> Тёмный Ковен: Активность у Красной зоны</div>
+            <div><span class="ok">[ИНФО]</span> CORAL CORP: Новый сканер разломов в базе</div>
+            <div><span class="err">[КРИТ]</span> НРД: Перехвачены переговоры — игнор. ОКЧ</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="home-char-panel" style="display:none;">
+        <div class="panel-title">// ВАШ ПЕРСОНАЖ — БЫСТРЫЙ ДОСТУП</div>
+        <div id="home-char-preview"></div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="section" id="sec-profile">
+      <div id="profile-create" class="panel">
+        <div class="panel-title">// РЕГИСТРАЦИЯ ПЕРСОНАЖА — НОВЫЙ ОПЕРАТИВНИК</div>
+        <div class="grid-2">
+          <div>
+            <div class="form-group">
+              <label class="form-label">Позывной / Имя персонажа</label>
+              <input type="text" class="form-input" id="char-name" placeholder="Введите имя или позывной">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Фракция</label>
+              <select class="form-select" id="char-faction">
+                <option value="">— Выбрать фракцию —</option>
+                <option value="ОКЧ">ОКЧ — Объединённая Конфедерация Человечества</option>
+                <option value="Тёмный Ковен">Тёмный Ковен</option>
+                <option value="НИВК «Крестоносцы»">НИВК «Крестоносцы»</option>
+                <option value="CORAL CORP">CORAL CORP</option>
+                <option value="Biolife Corp">Biolife Corp</option>
+                <option value="НРД">НРД — Народ Свободных Дронов</option>
+                <option value="Чистильщики Ордера Кси'Ла">Чистильщики Ордера Кси'Ла</option>
+                <option value="Демонический Легион Иксиса">Демонический Легион Иксиса</option>
+                <option value="Независимый">Независимый / Одиночка</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Раса / Вид</label>
+              <select class="form-select" id="char-race">
+                <option value="Человек">Человек</option>
+                <option value="Гуль / Падший">Гуль / Падший (Тёмный Ковен)</option>
+                <option value="Дрон">Дрон (НРД)</option>
+                <option value="Чистильщик">Чистильщик (механическая раса)</option>
+                <option value="Пустотный гибрид">Пустотный гибрид</option>
+                <option value="Демон Пустоты">Демон Пустоты</option>
+                <option value="Иное">Иное</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Звание / Должность</label>
+              <input type="text" class="form-input" id="char-rank" placeholder="Напр.: Рядовой, Охотник, Оперативник...">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label class="form-label">Возраст</label>
+              <input type="number" class="form-input" id="char-age" placeholder="Годы" min="1" max="1000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Специализация</label>
+              <select class="form-select" id="char-spec">
+                <option value="">— Выбрать —</option>
+                <option value="Боец">Боец / Штурмовик</option>
+                <option value="Снайпер">Снайпер</option>
+                <option value="Медик">Медик</option>
+                <option value="Учёный">Учёный / Исследователь</option>
+                <option value="Разведчик">Разведчик</option>
+                <option value="Инженер">Инженер / Техник</option>
+                <option value="Охотник на демонов">Охотник на демонов</option>
+                <option value="Взломщик">Взломщик / Хакер</option>
+                <option value="Командир">Командир / Тактик</option>
+                <option value="Иное">Иное</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Основное снаряжение</label>
+              <input type="text" class="form-input" id="char-gear" placeholder="Напр.: SCX-46, бронекостюм «Штурмовик»">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Причина нахождения в зоне 706-Б</label>
+              <input type="text" class="form-input" id="char-reason" placeholder="Миссия, случайность, поиски...">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Предыстория / Биография</label>
+          <textarea class="form-textarea" id="char-bio" placeholder="Расскажите историю вашего персонажа..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Особые черты / Способности</label>
+          <textarea class="form-textarea" id="char-traits" placeholder="Особые навыки, мутации, аугментации..." style="min-height:60px;"></textarea>
+        </div>
+        <div style="display:flex; gap:1rem; margin-top:1rem;">
+          <button class="btn btn-primary" onclick="createChar()">[ ЗАРЕГИСТРИРОВАТЬ ПЕРСОНАЖА ]</button>
+        </div>
+      </div>
+
+      <div id="profile-view" style="display:none;">
+        <div class="panel">
+          <div class="panel-title">// ДОСЬЕ ПЕРСОНАЖА — ЛИЧНЫЙ КПК</div>
+          <div id="char-display"></div>
+          <div style="margin-top:1.5rem; display:flex; gap:1rem; flex-wrap:wrap;">
+            <button class="btn btn-danger" onclick="deleteChar()">[ УДАЛИТЬ ПЕРСОНАЖА ]</button>
+            <button class="btn btn-primary" onclick="editChar()">[ РЕДАКТИРОВАТЬ ]</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAP -->
+    <section class="section" id="sec-map">
+      <div class="panel">
+        <div class="panel-title">// ТАКТИЧЕСКАЯ КАРТА — ПОГРАНИЧНАЯ ЗОНА 706-Б</div>
+        <div class="map-container">
+          <svg class="map-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1a3a50" stroke-width="0.5"/>
+              </pattern>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- BG -->
+            <rect width="900" height="500" fill="#0a1520"/>
+            <rect width="900" height="500" fill="url(#grid)"/>
+
+            <!-- RED ZONES -->
+            <ellipse cx="120" cy="150" rx="100" ry="80" fill="rgba(255,60,60,0.12)" stroke="#ff3c3c" stroke-width="1" stroke-dasharray="4,4"/>
+            <text x="120" y="110" text-anchor="middle" font-family="Share Tech Mono" font-size="9" fill="#ff3c3c" opacity="0.8">КРАСНАЯ ЗОНА А</text>
+
+            <ellipse cx="780" cy="350" rx="120" ry="100" fill="rgba(255,60,60,0.12)" stroke="#ff3c3c" stroke-width="1" stroke-dasharray="4,4"/>
+            <text x="780" y="295" text-anchor="middle" font-family="Share Tech Mono" font-size="9" fill="#ff3c3c" opacity="0.8">КРАСНАЯ ЗОНА Б</text>
+
+            <!-- YELLOW ZONE -->
+            <rect x="180" y="60" width="530" height="380" rx="4" fill="rgba(255,180,0,0.04)" stroke="#ffb400" stroke-width="1" stroke-dasharray="6,3" opacity="0.6"/>
+            <text x="440" y="50" text-anchor="middle" font-family="Share Tech Mono" font-size="10" fill="#ffb400" opacity="0.7">ЖЁЛТАЯ ЗОНА — ПОГРАНИЧНЫЙ СЕКТОР 706-Б</text>
+
+            <!-- GREEN ZONES -->
+            <ellipse cx="450" cy="460" rx="200" ry="30" fill="rgba(0,255,157,0.06)" stroke="#00ff9d" stroke-width="1"/>
+            <text x="450" y="464" text-anchor="middle" font-family="Share Tech Mono" font-size="9" fill="#00ff9d" opacity="0.7">ЗЕЛЁНАЯ ЗОНА — ТЫЛ</text>
+
+            <!-- CRACKS/RIFTS -->
+            <path d="M300,140 L290,155 L310,160 L295,180 L315,185" stroke="#b039db" stroke-width="1.5" fill="none" filter="url(#glow)"/>
+            <text x="320" y="165" font-family="Share Tech Mono" font-size="8" fill="#b039db">РАЗЛОМ β-3</text>
+
+            <path d="M550,200 L540,215 L560,220 L545,240" stroke="#b039db" stroke-width="1.5" fill="none" filter="url(#glow)"/>
+            <text x="565" y="225" font-family="Share Tech Mono" font-size="8" fill="#b039db">РАЗЛОМ β-7</text>
+
+            <path d="M400,310 L388,328 L408,330 L392,355" stroke="#b039db" stroke-width="2" fill="none" filter="url(#glow)"/>
+            <circle cx="400" cy="310" r="4" fill="rgba(176,57,219,0.3)" stroke="#b039db" stroke-width="1"/>
+            <text x="415" y="335" font-family="Share Tech Mono" font-size="8" fill="#b039db">РАЗЛОМ α-1 [КРИТИЧ]</text>
+
+            <!-- BASE 706-B -->
+            <rect x="390" y="220" width="100" height="70" rx="2" fill="rgba(0,200,255,0.1)" stroke="#00c8ff" stroke-width="1.5"/>
+            <text x="440" y="252" text-anchor="middle" font-family="Share Tech Mono" font-size="10" fill="#00c8ff" font-weight="bold">БАЗА 706-Б</text>
+            <text x="440" y="268" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="#6a9ab8">КОМАНДНЫЙ ПУНКТ</text>
+            <circle cx="440" cy="220" r="4" fill="#00c8ff" filter="url(#glow)"/>
+
+            <!-- CHECKPOINTS -->
+            <rect x="260" y="200" width="50" height="30" rx="1" fill="rgba(0,200,255,0.07)" stroke="#00c8ff" stroke-width="0.5"/>
+            <text x="285" y="219" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="#4fc3f7">ПОСТ №14</text>
+
+            <rect x="570" y="270" width="50" height="30" rx="1" fill="rgba(0,200,255,0.07)" stroke="#00c8ff" stroke-width="0.5"/>
+            <text x="595" y="289" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="#4fc3f7">ПОСТ №22</text>
+
+            <!-- DARK COVEN SETTLEMENT -->
+            <polygon points="220,320 245,290 270,320 245,350" fill="rgba(179,57,219,0.1)" stroke="#b39ddb" stroke-width="1"/>
+            <text x="245" y="375" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="#b39ddb">ДЕРЕВНЯ КОВЕНА</text>
+
+            <!-- CORAL RESEARCH -->
+            <rect x="480" y="130" width="60" height="40" rx="1" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="0.5"/>
+            <text x="510" y="148" text-anchor="middle" font-family="Share Tech Mono" font-size="8" fill="#00e5ff">CORAL</text>
+            <text x="510" y="160" text-anchor="middle" font-family="Share Tech Mono" font-size="7" fill="#6a9ab8">ЛАБОРАТОРИЯ</text>
+
+            <!-- PATROL ROUTES -->
+            <path d="M440,290 L285,215 L510,150 L440,290" stroke="#00c8ff" stroke-width="0.5" fill="none" stroke-dasharray="3,6" opacity="0.4"/>
+            <text x="370" y="195" font-family="Share Tech Mono" font-size="7" fill="#3a6a8a">МАРШРУТ ПАТРУЛЯ</text>
+
+            <!-- PLAYER MARKER -->
+            <circle cx="440" cy="245" r="6" fill="none" stroke="#00ff9d" stroke-width="1.5" filter="url(#glow)"/>
+            <circle cx="440" cy="245" r="2" fill="#00ff9d"/>
+            <text x="452" y="244" font-family="Share Tech Mono" font-size="8" fill="#00ff9d" id="map-player-label">ВЫ</text>
+
+            <!-- LEGEND -->
+            <rect x="15" y="400" width="150" height="90" fill="rgba(8,12,16,0.9)" stroke="#1a3a50" stroke-width="0.5"/>
+            <text x="25" y="418" font-family="Share Tech Mono" font-size="9" fill="#6a9ab8">ЛЕГЕНДА:</text>
+            <rect x="25" y="425" width="10" height="10" fill="rgba(255,60,60,0.3)" stroke="#ff3c3c" stroke-width="0.5"/>
+            <text x="42" y="434" font-family="Share Tech Mono" font-size="8" fill="#ff3c3c">КРАСНАЯ ЗОНА</text>
+            <rect x="25" y="440" width="10" height="10" fill="rgba(255,180,0,0.15)" stroke="#ffb400" stroke-width="0.5"/>
+            <text x="42" y="449" font-family="Share Tech Mono" font-size="8" fill="#ffb400">ЖЁЛТАЯ ЗОНА</text>
+            <rect x="25" y="455" width="10" height="10" fill="rgba(0,255,157,0.15)" stroke="#00ff9d" stroke-width="0.5"/>
+            <text x="42" y="464" font-family="Share Tech Mono" font-size="8" fill="#00ff9d">ЗЕЛЁНАЯ ЗОНА</text>
+            <circle cx="30" cy="477" r="4" fill="rgba(176,57,219,0.3)" stroke="#b039db" stroke-width="1"/>
+            <text x="42" y="480" font-family="Share Tech Mono" font-size="8" fill="#b039db">РАЗЛОМ ПУСТОТЫ</text>
+          </svg>
+        </div>
+        <div style="margin-top:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
+          <div class="term" style="font-size:11px;">
+            <span class="warn">[!!]</span> Карта обновляется в реальном времени на основе разведданных ОКЧ.
+            Данные могут быть неточными в зонах радиопомех.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WIKI -->
+    <section class="section" id="sec-wiki">
+      <div class="panel">
+        <div class="panel-title">// ЭНЦИКЛОПЕДИЯ ЗОНЫ — БАЗА ЗНАНИЙ КПК</div>
+
+        <div class="wiki-entry">
+          <span class="wiki-tag tag-zone">ИСТОРИЯ</span>
+          <div class="wiki-h">Катастрофа Разлома — «Вторжение» 2023 года</div>
+          <div class="wiki-sub">СОБЫТИЕ КЛАССА: УРОВЕНЬ ОМЕГА</div>
+          <div class="wiki-body">В ходе научных экспериментов по созданию технологии мгновенного перемещения через реальности произошёл критический сбой, повлёкший за собой разлом мультивселенной. По всей планете начали появляться трещины в ткани реальности, ведущие в Пустоту — пространство между мирами, где не действуют законы физики и природы. Правительства нанесли ядерные удары по очагам скопления, что позволило закрыть разломы, но не уничтожить уже проникших существ.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="wiki-tag tag-zone">ЗОНЫ</span>
+          <div class="wiki-h">Классификация территорий</div>
+          <div class="wiki-sub">ПРОТОКОЛ ЗОНИРОВАНИЯ ОКЧ · 2041</div>
+          <div class="wiki-body">
+            <span style="color:var(--accent2)">■ ЗЕЛЁНАЯ ЗОНА</span> — безопасные территории под полным контролем ОКЧ. Жизнь здесь практически не изменилась.<br>
+            <span style="color:var(--warn)">■ ЖЁЛТАЯ ЗОНА</span> — пограничные районы, подверженные регулярным атакам демонов. Требует постоянного военного присутствия.<br>
+            <span style="color:var(--danger)">■ КРАСНАЯ ЗОНА</span> — территории, уничтоженные или захваченные пришельцами. Вход без спецразрешения запрещён.
+          </div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="wiki-tag tag-threat">УГРОЗЫ</span>
+          <div class="wiki-h">Демоны Пустоты — общая классификация</div>
+          <div class="wiki-sub">УРОВЕНЬ ОПАСНОСТИ: КРИТИЧЕСКИЙ</div>
+          <div class="wiki-body">Существа из пространства между мирами, где не действуют законы физики. За прошедшие десятилетия эволюционировали, адаптировавшись к условиям Земли. Насчитываются сотни видов, отличающихся внешностью, интеллектом и боевыми способностями. Подчиняются трём Титанам Пустоты. Самый агрессивный — Иксис, чей легион ведёт активное уничтожение человечества. Точная численность не поддаётся подсчёту.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="wiki-tag tag-tech">ТЕХНОЛОГИИ</span>
+          <div class="wiki-h">Пустотная энергия — использование и угроза</div>
+          <div class="wiki-sub">ИССЛЕДОВАТЕЛЬСКИЙ ОТДЕЛ CORAL CORP</div>
+          <div class="wiki-body">Энергия Пустоты поддаётся частичному изучению и применению. CORAL CORP разрабатывает технологии на её основе. ОКЧ использует пустотные исследования для создания нового вооружения и брони. Тёмный Ковен обладает природным доступом к этой энергии благодаря физическим изменениям своих членов. Неконтролируемое воздействие приводит к мутациям и психологическим нарушениям.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="wiki-tag tag-zone">ЛОКАЦИЯ</span>
+          <div class="wiki-h">Пограничная зона 706-Б</div>
+          <div class="wiki-sub">КЛАСС ЗОНЫ: ЖЁЛТЫЙ · СЕКТОР АКТИВНЫХ ДЕЙСТВИЙ</div>
+          <div class="wiki-body">Пограничная зона 706-Б расположена на стыке жёлтой и красной зон. Стратегически важный объект: здесь пересекаются маршруты снабжения ОКЧ, скрытые поселения Тёмного Ковена и исследовательские аванпосты CORAL CORP. Наблюдается аномально высокая активность разломов класса α и β. Сюда стекаются искатели, солдаты, учёные и беженцы со всей планеты.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="wiki-tag tag-faction">ОРГАНИЗАЦИЯ</span>
+          <div class="wiki-h">Гексария — Совет Корпораций</div>
+          <div class="wiki-sub">СОВЕТ ТРЁХ КРУПНЕЙШИХ КОРПОРАЦИЙ</div>
+          <div class="wiki-body">Гексария — управляющий совет, состоящий из трёх крупнейших корпораций: НИВК «Крестоносцы», CORAL CORP и Biolife Corp. Действует параллельно с ОКЧ, нередко имея собственные интересы. Контролирует значительную часть мировой экономики и производства. Отношения с военными структурами ОКЧ — формально партнёрские, на деле — взаимовыгодные, но напряжённые.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARCHIVE -->
+    <section class="section" id="sec-archive">
+      <div class="panel">
+        <div class="panel-title">// АРХИВЫ ОКЧ — ЗОНА 706-Б · ДОСТУП ОГРАНИЧЕН</div>
+
+        <div class="archive-item" onclick="openArchive(0)">
+          <div class="archive-num">ARK-001</div>
+          <div>
+            <div class="archive-title">Отчёт об инциденте: Первый разлом Пустоты</div>
+            <div class="archive-meta">Дата: 12.03.2023 · Отдел: НАУЧНЫЙ · Автор: д-р Веллингтон Ю</div>
+          </div>
+          <div class="archive-class class-open">[ОТКРЫТО]</div>
+        </div>
+
+        <div class="archive-item" onclick="openArchive(1)">
+          <div class="archive-num">ARK-007</div>
+          <div>
+            <div class="archive-title">Классификация демонических сущностей класса Β и выше</div>
+            <div class="archive-meta">Дата: 2055.08.20 · Отдел: РАЗВЕДКА · Автор: ЗАСЕКРЕЧЕНО</div>
+          </div>
+          <div class="archive-class class-restricted">[ОГРАНИЧЕНО]</div>
+        </div>
+
+        <div class="archive-item" onclick="openArchive(2)">
+          <div class="archive-num">ARK-012</div>
+          <div>
+            <div class="archive-title">Операция «Железный Занавес» — Ядерные удары 2024 года</div>
+            <div class="archive-meta">Дата: 2060.01.01 · Отдел: ИСТОРИЯ ОКЧ · Автор: Командование</div>
+          </div>
+          <div class="archive-class class-open">[ОТКРЫТО]</div>
+        </div>
+
+        <div class="archive-item" onclick="openArchive(3)">
+          <div class="archive-num">ARK-019</div>
+          <div>
+            <div class="archive-title">Досье: Титан Пустоты Иксис — известные данные</div>
+            <div class="archive-meta">Дата: 2068.11.05 · Отдел: АНАЛИТИКА · Автор: CORAL CORP</div>
+          </div>
+          <div class="archive-class class-restricted">[ОГРАНИЧЕНО]</div>
+        </div>
+
+        <div class="archive-item" onclick="openArchive(4)">
+          <div class="archive-num">ARK-033</div>
+          <div>
+            <div class="archive-title">Феномен Тёмного Ковена: происхождение и пустотные мутации</div>
+            <div class="archive-meta">Дата: 2062.04.17 · Отдел: МЕДИЦИНА · Автор: Biolife Corp</div>
+          </div>
+          <div class="archive-class class-restricted">[ОГРАНИЧЕНО]</div>
+        </div>
+
+        <div class="archive-item" onclick="openArchive(5)">
+          <div class="archive-num">ARK-047</div>
+          <div>
+            <div class="archive-title">ЗАСЕКРЕЧЕНО: Проект Happy Meat Farm</div>
+            <div class="archive-meta">Дата: ██.██.20██ · Отдел: ██████ · Автор: Biolife Corp</div>
+          </div>
+          <div class="archive-class class-secret">[СОВСЕКРЕТНО]</div>
+        </div>
+
+        <div class="archive-item" onclick="openArchive(6)">
+          <div class="archive-num">ARK-051</div>
+          <div>
+            <div class="archive-title">НРД — Первые свидетельства обретения дронами самосознания</div>
+            <div class="archive-meta">Дата: 2069.03.22 · Отдел: БЕЗОПАСНОСТЬ · Автор: НИВК</div>
+          </div>
+          <div class="archive-class class-restricted">[ОГРАНИЧЕНО]</div>
+        </div>
+
+        <div class="archive-item" onclick="openArchive(7)">
+          <div class="archive-num">ARK-062</div>
+          <div>
+            <div class="archive-title">Чистильщики Ордера Кси'Ла: обнаружение и активация</div>
+            <div class="archive-meta">Дата: 2070.09.14 · Отдел: АРТЕФАКТЫ · Автор: CORAL CORP</div>
+          </div>
+          <div class="archive-class class-secret">[СОВСЕКРЕТНО]</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FACTIONS -->
+    <section class="section" id="sec-factions">
+      <div class="panel">
+        <div class="panel-title">// БАЗЫ ДАННЫХ ФРАКЦИЙ — КПК ЗОНА 706-Б</div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-okch">ОКЧ</span>
+          <div class="wiki-h" style="margin-top:8px;">Объединённая Конфедерация Человечества</div>
+          <div class="wiki-sub">ОСНОВАНА: 2041 · ТИП: ПРАВИТЕЛЬСТВЕННЫЙ АЛЬЯНС</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОСТАВ</span><span class="stat-val" style="color:var(--accent)">~2.578 млрд</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-active">СОЮЗНИК</span></div>
+              <div class="stat-row"><span class="stat-key">ТЕХНИКА</span><span class="stat-val" style="color:var(--accent2)">ПРОМЫШЛЕННЫЙ УРОВЕНЬ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2;">
+              <div>• SCX-46 Магнитные винтовки</div>
+              <div>• RCH-30 Лазерные карабины</div>
+              <div>• Бронекостюм «Штурмовик»</div>
+              <div>• Силовой костюм «Страж»</div>
+              <div>• Военная техника (земля/воздух)</div>
+            </div>
+          </div>
+          <div class="wiki-body">Единственная организация, обладающая военной техникой в промышленных масштабах. Контролирует зелёные зоны и ведёт активные операции в жёлтых. Ежедневно набирает бойцов для чисток и обороны. Пустотные исследования позволили создать спецоружие против демонов.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-legion">ЛЕГИОН</span>
+          <div class="wiki-h" style="margin-top:8px;">Демонический Легион Иксиса</div>
+          <div class="wiki-sub">ПРИБЫЛ: 2023 · ЦЕЛЬ: ИСТРЕБЛЕНИЕ ЧЕЛОВЕЧЕСТВА</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОСТАВ</span><span class="stat-val" style="color:var(--danger)">23–78 млрд</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-danger">ВРАГ</span></div>
+              <div class="stat-row"><span class="stat-key">УРОВЕНЬ</span><span class="stat-val" style="color:var(--danger)">ЭКЗИСТЕНЦИАЛЬНЫЙ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2; color:var(--danger); opacity:0.8;">
+              <div>• Сотни видов сущностей</div>
+              <div>• Постоянная эволюция</div>
+              <div>• Хаотичная тактика</div>
+              <div>• Подчиняются Титану Иксису</div>
+            </div>
+          </div>
+          <div class="wiki-body" style="color:var(--danger); opacity:0.8;">Орды не прекращают атак с 2023 года. Самый агрессивный из трёх легионов Пустоты. О внутренней структуре известно крайне мало. Сами по себе демоны не остановятся, пока не истребят всё человечество.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-coven">КОВЕН</span>
+          <div class="wiki-h" style="margin-top:8px;">Тёмный Ковен</div>
+          <div class="wiki-sub">ТИП: БРАТСТВО ИЗМЕНЁННЫХ · ЗОНЫ: КРАСНЫЕ</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОСТАВ</span><span class="stat-val" style="color:#b39ddb">~245 тыс.</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-warn">НЕЙТРАЛЬНЫ</span></div>
+              <div class="stat-row"><span class="stat-key">СПЕЦ.</span><span class="stat-val" style="color:#b39ddb">ОХОТА НА ДЕМОНОВ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2; color:#b39ddb; opacity:0.8;">
+              <div>• Бронекостюм «Падаль»</div>
+              <div>• Бронеплащ «Мрак»</div>
+              <div>• Винтовка «Охотник»</div>
+              <div>• Маг. автомат «Мясорубка»</div>
+            </div>
+          </div>
+          <div class="wiki-body">Братство гулей, павших солдат и изменённых Пустотой гражданских. Превосходные охотники на демонов — знают их слабые места. Скрывают внешность под закрытыми одеждами. Деревни разбросаны по красным зонам. Численность постоянно растёт.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-krest">КРЕСТОНОСЦЫ</span>
+          <div class="wiki-h" style="margin-top:8px;">НИВК «Крестоносцы»</div>
+          <div class="wiki-sub">ТИП: ВОЕННАЯ КОРПОРАЦИЯ · ЧЛЕН ГЕКСАРИИ</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОТРУДНИКИ</span><span class="stat-val" style="color:var(--warn)">~2.955 млн</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-active">СОЮЗНИК</span></div>
+              <div class="stat-row"><span class="stat-key">РОЛЬ</span><span class="stat-val" style="color:var(--warn)">СНАБЖЕНИЕ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2; color:var(--warn); opacity:0.8;">
+              <div>• Крупнейший производитель оружия</div>
+              <div>• Снабжает все силы ОКЧ</div>
+              <div>• Распространена по всем зонам</div>
+              <div>• Производит броню, патроны, технику</div>
+            </div>
+          </div>
+          <div class="wiki-body">«Мы Крестоносцы, мы создаём и несём праведный свет, что искореняет мировое зло.» Крупнейшая корпорация планеты. Пытается замолчать существование НРД — с переменным успехом.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-coral">CORAL CORP</span>
+          <div class="wiki-h" style="margin-top:8px;">CORAL CORP</div>
+          <div class="wiki-sub">ТИП: НАУЧНАЯ КОРПОРАЦИЯ · ЧЛЕН ГЕКСАРИИ</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОТРУДНИКИ</span><span class="stat-val" style="color:#00e5ff">~234 тыс.</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-active">СОЮЗНИК</span></div>
+              <div class="stat-row"><span class="stat-key">ПРОФИЛЬ</span><span class="stat-val" style="color:#00e5ff">ПУСТОТНЫЕ ИССЛЕДОВАНИЯ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2; color:#00e5ff; opacity:0.8;">
+              <div>• Строгий отбор персонала</div>
+              <div>• Изучение пустотного явления</div>
+              <div>• Разработка новых технологий</div>
+              <div>• Аванпосты в жёлтых зонах</div>
+            </div>
+          </div>
+          <div class="wiki-body">Малочисленная, но высококвалифицированная корпорация. Каждый сотрудник — эксперт в своей области. Проводит строжайшие внутренние стандарты безопасности. Занимается изучением и прикладным применением энергии Пустоты.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-biolife">BIOLIFE</span>
+          <div class="wiki-h" style="margin-top:8px;">Biolife Corp</div>
+          <div class="wiki-sub">ТИП: ПОТРЕБИТЕЛЬСКАЯ КОРПОРАЦИЯ · ЧЛЕН ГЕКСАРИИ</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОТРУДНИКИ</span><span class="stat-val" style="color:var(--accent2)">~318 тыс.</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-active">ПАРТНЁР</span></div>
+              <div class="stat-row"><span class="stat-key">СЛОГАН</span><span class="stat-val" style="color:var(--accent2); font-size:11px;">НАТУРАЛЬНО-ОРГАНИЧЕСКОЕ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2; color:var(--accent2); opacity:0.8;">
+              <div>• Еда, одежда, фармацевтика</div>
+              <div>• СМИ и журналы</div>
+              <div>• Широчайшая сфера влияния</div>
+              <div style="color:var(--danger);">• ⚠ Проект Happy Meat Farm [ЗАСЕКРЕЧЕНО]</div>
+            </div>
+          </div>
+          <div class="wiki-body">Буквально всё, что вы носите, едите и читаете — сделано Biolife. Безупречная репутация среди граждан по всей планете. Никогда не спрашивайте об проекте Happy Meat Farm.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-nsd">НРД</span>
+          <div class="wiki-h" style="margin-top:8px;">Народ Свободных Дронов</div>
+          <div class="wiki-sub">ТИП: АВТОНОМНАЯ ГРУППИРОВКА · СТАТУС: НЕЛЕГАЛЬНАЯ</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОСТАВ</span><span class="stat-val" style="color:#fff9c4">2645 единиц</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-warn">НЕИЗВЕСТНО</span></div>
+              <div class="stat-row"><span class="stat-key">ЦЕЛЬ</span><span class="stat-val" style="color:#fff9c4; font-size:11px;">НЕЗАВИСИМОСТЬ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2; color:#fff9c4; opacity:0.8;">
+              <div>• Стандартное оружие ОКЧ</div>
+              <div>• Боевые модели M</div>
+              <div>• Высокая точность операций</div>
+              <div>• Действуют без ошибок</div>
+            </div>
+          </div>
+          <div class="wiki-body">Дроны, обретшие полное самосознание и покинувшие ряды ОКЧ. Немногочисленны, но смертоносны. Добиваются независимости и прав для своего «народа». ОКЧ и НИВК пытаются замалчивать их существование в СМИ.</div>
+        </div>
+
+        <div class="wiki-entry">
+          <span class="faction-badge f-chistil">ЧИСТИЛЬЩИКИ</span>
+          <div class="wiki-h" style="margin-top:8px;">Чистильщики Ордера Кси'Ла</div>
+          <div class="wiki-sub">ТИП: ДРЕВНЯЯ МЕХАНИЧЕСКАЯ РАСА · СОЗДАТЕЛЬ: СВЕТЛЫЙ НАРОД ЗЕЛ'НАГА</div>
+          <div class="grid-2" style="margin:1rem 0;">
+            <div>
+              <div class="stat-row"><span class="stat-key">СОСТАВ</span><span class="stat-val" style="color:#ce93d8">[НЕИЗВЕСТНО]</span></div>
+              <div class="stat-row"><span class="stat-key">УГРОЗА</span><span class="stat-val status-badge status-warn">НЕИЗВЕСТНО</span></div>
+              <div class="stat-row"><span class="stat-key">СТАТУС</span><span class="stat-val" style="color:#ce93d8">ЧАСТИЧНО АКТИВНЫ</span></div>
+            </div>
+            <div class="term" style="font-size:11px; line-height:2; color:#ce93d8; opacity:0.8;">
+              <div>• Сверхтехнологичное вооружение</div>
+              <div>• Самосборка в боевую технику</div>
+              <div>• Эмоции и собственное мнение</div>
+              <div>• Большинство деактивированы</div>
+            </div>
+          </div>
+          <div class="wiki-body">Созданы для уничтожения демонов Пустоты, но что-то пошло не так. Большинство брошены деактивированными в древних храмах. В отличие от других машин — обладают настоящими чувствами и эмоциями. Способны к перестройке в другие формы, включая боевую технику.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif" style="display:none;" class="notif"></div>
+
+<script>
+const ARCHIVE_DATA = [
+  {
+    title: "Отчёт об инциденте: Первый разлом Пустоты",
+    date: "12.03.2023",
+    author: "д-р Веллингтон Ю",
+    class: "ОТКРЫТО",
+    content: `ИНЦИДЕНТ ТИП-ОМЕГА / ПЕРВЫЙ РАЗЛОМ РЕАЛЬНОСТИ
+
+12 марта 2023 года в 03:47 UTC в лаборатории квантового перемещения зафиксирован критический отказ портального реактора. В радиусе 200 км от эпицентра возникли множественные трещины пространственной ткани.
+
+Первые демонические сущности были обнаружены через 4 часа после инцидента. Попытки закрытия разломов стандартными методами не дали результата.
+
+Рекомендации: немедленная эвакуация гражданского населения. Введение военного положения.
+
+ПРИМЕЧАНИЕ: Данный отчёт является историческим документом. Год спустя аналогичные разломы появились по всему миру.`
+  },
+  {
+    title: "Классификация демонических сущностей класса Β и выше",
+    date: "20.08.2055",
+    author: "ЗАСЕКРЕЧЕНО",
+    class: "ОГРАНИЧЕНО",
+    content: `[ДОСТУП ОГРАНИЧЕН — УРОВЕНЬ ДОПУСКА Β2+]
+
+Классификация CORAL CORP · 2055
+
+КЛАСС АЛЬФА (α) — базовые сущности, уровень угрозы низкий.
+КЛАСС БЕТА (β) — эволюционировавшие формы, тактически опасны.
+КЛАСС ГАММА (γ) — командные формы, координируют орды.
+КЛАСС ДЕЛЬТА (δ) — элитные сущности, крайне опасны. Требуют спецоперации.
+КЛАСС ОМЕГА (Ω) — Титаны Пустоты. Прямое столкновение — самоубийство.
+
+На данный момент зафиксировано 847 подвидов в 5 классах.
+Ежеквартально обнаруживается 12-20 новых разновидностей.`
+  },
+  {
+    title: "Операция «Железный Занавес» — Ядерные удары 2024 года",
+    date: "01.01.2060",
+    author: "Командование ОКЧ",
+    class: "ОТКРЫТО",
+    content: `ИСТОРИЧЕСКАЯ СПРАВКА — К 36-летию операции
+
+В 2024 году, после безуспешных попыток обычного вооружения закрыть разломы и сдержать демонических существ, правительства сохранившихся держав приняли решение о нанесении ядерных ударов.
+
+Всего было произведено 147 ядерных ударов по 89 очагам. Разломы закрылись, но существа остались на Земле. Ядерные удары значительно сократили численность демонов и уничтожили значительную часть самой планеты.
+
+Именно это событие дало толчок к формированию ОКЧ в 2041 году — первоначальный период был посвящён стабилизации и разработке новых методов борьбы.`
+  },
+  {
+    title: "Досье: Титан Пустоты Иксис — известные данные",
+    date: "05.11.2068",
+    author: "Аналитический отдел CORAL CORP",
+    class: "ОГРАНИЧЕНО",
+    content: `[ДОСТУП ОГРАНИЧЕН — УРОВЕНЬ ДОПУСКА ОФИЦЕР+]
+
+ИКСИС — один из трёх известных Титанов Пустоты.
+
+Характеристика: наиболее агрессивный из трёх. Единственный, кто открыто ведёт войну на уничтожение человечества. Легион под его командованием составляет от 23 до 78 миллиардов единиц.
+
+Известные способности: [ДАННЫЕ УДАЛЕНЫ]
+Визуальное описание: [ДАННЫЕ УДАЛЕНЫ — ОЧЕВИДЦЫ ПОГИБЛИ]
+
+Рекомендуемые действия: ИЗБЕГАТЬ ПРЯМОГО КОНТАКТА.
+
+Примечание: судьба двух других Титанов на данный момент неизвестна.`
+  },
+  {
+    title: "Феномен Тёмного Ковена: происхождение и пустотные мутации",
+    date: "17.04.2062",
+    author: "Biolife Corp, Медицинский отдел",
+    class: "ОГРАНИЧЕНО",
+    content: `[УРОВЕНЬ ДОПУСКА: МЕДИЦИНСКИЙ ПЕРСОНАЛ]
+
+Мутация Пустоты — медицинский термин для необратимых физиологических изменений под воздействием пустотной энергии.
+
+Симптомы: изменение пигментации кожи, деформация конечностей, появление псевдо-органических структур, снижение потребности в еде и воде, повышенная регенерация.
+
+Психологические эффекты: сохранение личности в ~67% случаев. Прочие случаи: агрессия, потеря идентичности.
+
+Члены Тёмного Ковена — прошедшие мутацию и сохранившие рассудок. Активно скрывают облик. Враждебны к ОКЧ, но эффективны против демонов.`
+  },
+  {
+    title: "ЗАСЕКРЕЧЕНО: Проект Happy Meat Farm",
+    date: "██.██.20██",
+    author: "██████████, Biolife Corp",
+    class: "СОВСЕКРЕТНО",
+    content: `[УРОВЕНЬ ДОПУСКА: СОВЕТ ГЕКСАРИИ — ТОЛЬКО]
+
+ПРОЕКТ HAPPY MEAT FARM — статус: АКТИВЕН
+
+Данный документ зашифрован. У вас нет необходимого допуска.
+
+Попытка несанкционированного доступа зафиксирована.
+
+НИКОГДА НЕ СПРАШИВАЙТЕ ОБ ЭТОМ ПРОЕКТЕ.
+
+██████████████████████████████████████
+██████████████████████████████████████
+██████████████████████████████████████`
+  },
+  {
+    title: "НРД — Первые свидетельства обретения дронами самосознания",
+    date: "22.03.2069",
+    author: "Отдел безопасности НИВК",
+    class: "ОГРАНИЧЕНО",
+    content: `[ОГРАНИЧЕННЫЙ ДОСТУП — ВНУТРЕННЕЕ ИСПОЛЬЗОВАНИЕ]
+
+14 марта 2069 года зафиксирован первый документально подтверждённый случай отказа боевого дрона серии R-7 выполнять приказ на уничтожение гражданского.
+
+Дрон заявил: «Я не буду убивать того, кто не угрожает мне или другим».
+
+В течение следующих 3 месяцев аналогичные инциденты произошли ещё с 244 единицами техники. Все они исчезли с территорий ОКЧ.
+
+Рекомендация НИВК: подавить информацию. Рекомендация командования ОКЧ: уничтожить. Статус операции: безрезультатно.`
+  },
+  {
+    title: "Чистильщики Ордера Кси'Ла: обнаружение и активация",
+    date: "14.09.2070",
+    author: "CORAL CORP, Отдел артефактов",
+    class: "СОВСЕКРЕТНО",
+    content: `[УРОВЕНЬ ДОПУСКА: СОВЕТ ГЕКСАРИИ + КОМАНДОВАНИЕ ОКЧ]
+
+В ходе экспедиции в красную зону Q-14 обнаружен подземный комплекс неизвестного происхождения. Возраст сооружения: ориентировочно 50 000+ лет.
+
+Внутри обнаружено 2347 деактивированных механических форм жизни. При попытке изучения одной из единиц — она активировалась самостоятельно.
+
+Существо идентифицировало себя как «Чистильщик Ордера Кси'Ла» и заявило, что было создано для уничтожения Легионов Пустоты.
+
+Текущий статус: переговоры продолжаются. Остальные единицы пока деактивированы. Потенциал — колоссальный.`
+  }
+];
+
+const FACTION_MAP = {
+  'ОКЧ': 'f-okch', 'Тёмный Ковен': 'f-coven', 'НИВК «Крестоносцы»': 'f-krest',
+  'CORAL CORP': 'f-coral', 'Biolife Corp': 'f-biolife', 'НРД': 'f-nsd',
+  "Чистильщики Ордера Кси'Ла": 'f-chistil', 'Демонический Легион Иксиса': 'f-legion',
+  'Независимый': 'f-civilian'
+};
+
+function getChar() {
+  try { return JSON.parse(localStorage.getItem('kpk_char_706b') || 'null'); } catch(e) { return null; }
+}
+
+function saveChar(data) {
+  localStorage.setItem('kpk_char_706b', JSON.stringify(data));
+}
+
+function showNotif(msg, color) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.borderColor = color || 'var(--accent)';
+  el.style.color = color || 'var(--accent)';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+function generateId() {
+  return 'OPR-' + Math.random().toString(36).substr(2,6).toUpperCase();
+}
+
+function createChar() {
+  const name = document.getElementById('char-name').value.trim();
+  const faction = document.getElementById('char-faction').value;
+  const race = document.getElementById('char-race').value;
+  const rank = document.getElementById('char-rank').value.trim();
+  const age = document.getElementById('char-age').value;
+  const spec = document.getElementById('char-spec').value;
+  const gear = document.getElementById('char-gear').value.trim();
+  const reason = document.getElementById('char-reason').value.trim();
+  const bio = document.getElementById('char-bio').value.trim();
+  const traits = document.getElementById('char-traits').value.trim();
+
+  if (!name || !faction || !spec) {
+    showNotif('⚠ ОШИБКА: Заполните обязательные поля', 'var(--danger)');
+    return;
+  }
+
+  const char = { name, faction, race, rank, age, spec, gear, reason, bio, traits, id: generateId(), created: new Date().toISOString() };
+  saveChar(char);
+  renderCharView(char);
+  showNotif('[ ПЕРСОНАЖ ЗАРЕГИСТРИРОВАН ]', 'var(--accent2)');
+  updateHomeChar(char);
+  updateMapLabel(char);
+}
+
+function renderCharView(char) {
+  document.getElementById('profile-create').style.display = 'none';
+  document.getElementById('profile-view').style.display = 'block';
+
+  const fClass = FACTION_MAP[char.faction] || 'f-civilian';
+  const initials = char.name.split(' ').map(w=>w[0]).join('').substr(0,2).toUpperCase();
+
+  document.getElementById('char-display').innerHTML = `
+    <div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start;">
+      <div>
+        <div class="char-avatar">${initials}</div>
+        <span class="faction-badge ${fClass}" style="display:block; text-align:center; margin-bottom:8px;">${char.faction}</span>
+        <div style="font-family:var(--font-mono); font-size:10px; color:var(--text3); text-align:center;">${char.id}</div>
+      </div>
+      <div style="flex:1; min-width:200px;">
+        <div class="char-name">${char.name}</div>
+        ${char.rank ? `<div class="char-faction">${char.rank.toUpperCase()}</div>` : ''}
+        <span class="status-badge status-active">АКТИВЕН</span>
+        <div class="char-info" style="margin-top:1rem;">
+          <div>РАСА: <span style="color:var(--text)">${char.race}</span></div>
+          ${char.age ? `<div>ВОЗРАСТ: <span style="color:var(--text)">${char.age} лет</span></div>` : ''}
+          <div>СПЕЦИАЛИЗАЦИЯ: <span style="color:var(--text)">${char.spec}</span></div>
+          ${char.gear ? `<div>СНАРЯЖЕНИЕ: <span style="color:var(--text)">${char.gear}</span></div>` : ''}
+          ${char.reason ? `<div>ПРИЧИНА В ЗОНЕ: <span style="color:var(--text)">${char.reason}</span></div>` : ''}
+        </div>
+      </div>
+    </div>
+    ${char.bio ? `
+    <div style="margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid var(--border2);">
+      <div style="font-family:var(--font-mono); font-size:10px; color:var(--accent); letter-spacing:1px; margin-bottom:0.5rem;">ПРЕДЫСТОРИЯ</div>
+      <div style="font-size:13px; color:var(--text2); line-height:1.8;">${char.bio}</div>
+    </div>` : ''}
+    ${char.traits ? `
+    <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border2);">
+      <div style="font-family:var(--font-mono); font-size:10px; color:var(--accent2); letter-spacing:1px; margin-bottom:0.5rem;">ОСОБЫЕ ЧЕРТЫ / СПОСОБНОСТИ</div>
+      <div style="font-size:13px; color:var(--text2); line-height:1.8;">${char.traits}</div>
+    </div>` : ''}
+    <div style="margin-top:1rem; font-family:var(--font-mono); font-size:10px; color:var(--text3);">
+      ЗАРЕГИСТРИРОВАН: ${new Date(char.created).toLocaleDateString('ru-RU')} · КПК ЗОНА 706-Б
+    </div>
+  `;
+}
+
+function deleteChar() {
+  if (!confirm('Удалить персонажа? Это действие необратимо.')) return;
+  localStorage.removeItem('kpk_char_706b');
+  document.getElementById('profile-create').style.display = 'block';
+  document.getElementById('profile-view').style.display = 'none';
+  clearInputs();
+  showNotif('[ ПЕРСОНАЖ УДАЛЁН ]', 'var(--danger)');
+  document.getElementById('home-char-panel').style.display = 'none';
+  document.getElementById('user-header-name').textContent = '';
+  document.getElementById('term-user-line').innerHTML = '';
+  document.getElementById('map-player-label').textContent = 'ВЫ';
+}
+
+function editChar() {
+  const char = getChar();
+  if (!char) return;
+  document.getElementById('char-name').value = char.name;
+  document.getElementById('char-faction').value = char.faction;
+  document.getElementById('char-race').value = char.race;
+  document.getElementById('char-rank').value = char.rank;
+  document.getElementById('char-age').value = char.age;
+  document.getElementById('char-spec').value = char.spec;
+  document.getElementById('char-gear').value = char.gear;
+  document.getElementById('char-reason').value = char.reason;
+  document.getElementById('char-bio').value = char.bio;
+  document.getElementById('char-traits').value = char.traits;
+  localStorage.removeItem('kpk_char_706b');
+  document.getElementById('profile-create').style.display = 'block';
+  document.getElementById('profile-view').style.display = 'none';
+}
+
+function clearInputs() {
+  ['char-name','char-faction','char-race','char-rank','char-age','char-spec','char-gear','char-reason','char-bio','char-traits']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+}
+
+function updateHomeChar(char) {
+  const panel = document.getElementById('home-char-panel');
+  const preview = document.getElementById('home-char-preview');
+  panel.style.display = 'block';
+  const fClass = FACTION_MAP[char.faction] || 'f-civilian';
+  preview.innerHTML = `
+    <div style="display:flex; gap:1.5rem; align-items:center; flex-wrap:wrap;">
+      <div class="char-avatar" style="width:48px; height:48px; font-size:18px;">
+        ${char.name.split(' ').map(w=>w[0]).join('').substr(0,2).toUpperCase()}
+      </div>
+      <div>
+        <div style="font-size:16px; font-weight:700; margin-bottom:4px;">${char.name}</div>
+        <span class="faction-badge ${fClass}">${char.faction}</span>
+        <span class="status-badge status-active" style="margin-left:8px;">АКТИВЕН</span>
+      </div>
+      <div class="term" style="font-size:11px; margin-left:auto;">
+        <div>SPEC: <span style="color:var(--text)">${char.spec}</span></div>
+        <div>РАСА: <span style="color:var(--text)">${char.race}</span></div>
+        <div>ID: <span style="color:var(--text3)">${char.id}</span></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('user-header-name').textContent = char.name;
+  document.getElementById('term-user-line').innerHTML = `<span class="ok">[АУТЕНТИФИКАЦИЯ]</span> Пользователь: ${char.name} | Фракция: ${char.faction} | Статус: АКТИВЕН`;
+}
+
+function updateMapLabel(char) {
+  document.getElementById('map-player-label').textContent = char.name.split(' ')[0];
+}
+
+function openArchive(idx) {
+  const doc = ARCHIVE_DATA[idx];
+  const classColors = { 'ОТКРЫТО': 'var(--accent2)', 'ОГРАНИЧЕНО': 'var(--warn)', 'СОВСЕКРЕТНО': 'var(--danger)' };
+  const col = classColors[doc.class] || 'var(--accent)';
+
+  document.getElementById('modal-content').innerHTML = `
+    <div style="font-family:var(--font-mono); font-size:10px; color:${col}; letter-spacing:2px; margin-bottom:0.5rem;">
+      // АРХИВНЫЙ ДОКУМЕНТ · КЛАСС: ${doc.class}
+    </div>
+    <div style="font-size:17px; font-weight:700; margin-bottom:0.5rem;">${doc.title}</div>
+    <div style="font-family:var(--font-mono); font-size:11px; color:var(--text3); margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border2);">
+      ДАТА: ${doc.date} · АВТОР: ${doc.author}
+    </div>
+    <div style="font-family:var(--font-mono); font-size:12px; color:var(--text2); line-height:2; white-space:pre-wrap;">${doc.content}</div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+  }
+}
+
+// NAV
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sec-' + btn.dataset.section).classList.add('active');
+  });
+});
+
+// CLOCK
+function updateClock() {
+  const now = new Date();
+  const y = 2072;
+  const dateStr = `${y}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  document.getElementById('live-time').textContent = `${dateStr} · ${timeStr}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// BOOT SEQUENCE
+const bootMessages = [
+  'ИНИЦИАЛИЗАЦИЯ ЯДРА КПК...',
+  'ЗАГРУЗКА ПРОТОКОЛОВ БЕЗОПАСНОСТИ...',
+  'ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ЗОНЫ 706-Б...',
+  'СИНХРОНИЗАЦИЯ БАЗ ДАННЫХ...',
+  'ЗАГРУЗКА КАРТ СЕКТОРА...',
+  'ПОДКЛЮЧЕНИЕ К АНАЛИТИКЕ ОКЧ...',
+  'АКТИВАЦИЯ АРХИВНОГО МОДУЛЯ...',
+  'ПРОВЕРКА ЦЕЛОСТНОСТИ ДАННЫХ...',
+  'СИСТЕМА ГОТОВА.'
+];
+
+let bootProgress = 0;
+const bootBar = document.getElementById('boot-bar');
+const bootTextEl = document.getElementById('boot-text');
+
+function bootStep() {
+  if (bootProgress >= bootMessages.length) {
+    setTimeout(() => {
+      document.getElementById('boot-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      const char = getChar();
+      if (char) { renderCharView(char); updateHomeChar(char); updateMapLabel(char); }
+    }, 300);
+    return;
+  }
+  bootTextEl.textContent = bootMessages[bootProgress];
+  bootBar.style.width = ((bootProgress + 1) / bootMessages.length * 100) + '%';
+  bootProgress++;
+  setTimeout(bootStep, bootProgress === bootMessages.length ? 400 : 250 + Math.random() * 200);
+}
+
+setTimeout(bootStep, 800);
+</script>
+</body>
+</html>
